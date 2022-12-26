@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
-import { Component } from 'react';
 import { nanoid } from 'nanoid';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as yup from 'yup';
 import { FaUserPlus, FaPhoneAlt } from 'react-icons/fa';
 import styled from 'styled-components';
 
-const Form = styled.form`
+const FormContact = styled(Form)`
   display: flex;
   flex-flow: column;
   justify-content: center;
@@ -17,7 +18,7 @@ const Label = styled.label`
     margin-right: ${p => p.theme.space[0]}px;
   }
 `;
-const Input = styled.input`
+const Input = styled(Field)`
   transition: all 0.3s ease;
   margin-bottom: ${p => p.theme.space[1]}px;
   padding: 0 ${p => p.theme.space[0]}px;
@@ -62,67 +63,68 @@ const Button = styled.button`
       inset 0 -15px 30px rgba(129, 12, 110, 0.75);
   }
 `;
+const ErrorText = styled.p`
+  color: ${p => p.theme.colors.errorColor};
+  font-size: ${p => p.theme.fontSizes.s};
+  line-height: ${p => p.theme.lineHeights.heading};
+  margin-bottom: ${p => p.theme.space[1]}px;
+`;
 
-export class ContactForm extends Component {
-  state = {
-    name: '',
-    number: '',
-  };
+const initialValues = {
+  name: '',
+  number: '',
+};
 
-  static propTypes = {
-    onSubmit: PropTypes.func.isRequired,
-  };
+const pattern = /^[\d+][\d()-]{4,14}\d$/i;
+const schema = yup.object({
+  name: yup.string().required(),
+  number: yup
+    .string()
+    .required()
+    .test({
+      test: value => pattern.test(value),
+    }),
+});
 
-  handleChange = e => {
-    const { name, value } = e.currentTarget;
-    this.setState({ [name]: value });
-  };
-  handleSubmit = e => {
-    e.preventDefault();
-    this.props.onSubmit(this.state);
-    this.reset();
-  };
-  reset = () => {
-    this.setState({
-      name: '',
-      number: '',
-    });
-  };
+const FormError = ({ name }) => {
+  return (
+    <ErrorMessage
+      name={name}
+      render={message => <ErrorText>{message}</ErrorText>}
+    />
+  );
+};
 
-  render() {
-    const { name, number } = this.state;
-    return (
-      <Form onSubmit={this.handleSubmit}>
-        <Label htmlFor={this.nameInputId}>
+export const ContactForm = ({ onSubmit }) => {
+  const handleSubmit = (values, { resetForm }) => {
+    onSubmit(values);
+    resetForm();
+  };
+  return (
+    <Formik
+      initialValues={initialValues}
+      validationSchema={schema}
+      onSubmit={handleSubmit}
+    >
+      <FormContact>
+        <Label htmlFor="name">
           <FaUserPlus />
           Name
         </Label>
-        <Input
-          type="text"
-          name="name"
-          pattern="^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$"
-          title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
-          required
-          value={name}
-          onChange={this.handleChange}
-          id={nanoid()}
-        />
-        <Label htmlFor={this.numberInputId}>
+        <Input type="text" name="name" id={nanoid()} />
+        <FormError name="name" />
+        <Label htmlFor="number">
           <FaPhoneAlt />
           Number
         </Label>
-        <Input
-          type="tel"
-          name="number"
-          pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
-          title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
-          required
-          value={number}
-          onChange={this.handleChange}
-          id={nanoid()}
-        />
+        <Input type="tel" name="number" id={nanoid()} />
+        <FormError name="number" />
         <Button type="submit">Add contact</Button>
-      </Form>
-    );
-  }
-}
+      </FormContact>
+    </Formik>
+  );
+};
+
+ContactForm.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+};
